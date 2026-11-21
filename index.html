@@ -32,6 +32,16 @@ article h2{font-size:25px;margin:32px 0 6px}.error{color:#88362d}button,input,se
 .reply-slip:after{content:"";position:absolute;right:-1px;top:-1px;width:16px;height:16px;background:linear-gradient(45deg,#dfd1b2 48%,#bbad92 50%,#fff8e8 54%)}
 .letter-body{line-height:2.05}
 .post .stamp{flex:0 0 auto;white-space:nowrap}
+.actions.answer-list{display:block;max-width:32em;margin-top:18px}
+.answer-list button{display:block;width:100%;min-height:46px;margin:0 0 8px;text-align:left;padding:10px 16px;background:#fbf4e3;border-color:#b4aa8c;overflow-wrap:break-word}
+.answer-list button:before{content:"";display:inline-block;width:8px;height:8px;margin:0 13px 2px 0;border:1px solid #738373;border-radius:50%}
+.answer-list button:hover,.answer-list button:focus-visible{background:#eeecd9;border-color:#6d806b}
+.choice{min-height:46px}.choice input{flex:0 0 18px;padding:0;margin:0}.choice input:checked+span{font-weight:bold;color:#294e41}
+.card-margin,.page-turn{align-items:center;border-top:1px dashed #c0b695;padding-top:12px}
+.card-margin button,.page-turn .quiet-action{min-height:44px;padding:6px 8px;background:transparent;border-color:transparent;color:#526354}
+.card-margin button:hover,.page-turn .quiet-action:hover{text-decoration:underline}
+.card-margin button:last-child,.page-turn .primary{margin-left:auto}
+#fallback details{color:#57675e}#fallback summary{width:fit-content}
 .sound-panel{margin:22px 0 12px}.sound-panel audio{display:block;width:100%}.sound-controls{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px 20px;padding:17px 19px;border:1px solid #d8caab;background:#faf2dc}.sound-controls button{min-width:5em}.sound-time{justify-self:end;font:15px Consolas,monospace;color:#405842}.sound-controls input[type=range]{grid-column:1/-1;accent-color:#465d49;margin:0;padding:0;height:24px}.sound-panel a{display:inline-block;margin-left:.6em}.bodytext,.route,summary,.aside{overflow-wrap:break-word;overflow-wrap:anywhere}
 @media(prefers-reduced-motion:no-preference){
  .reply-slip{animation:slip-in .45s ease-out backwards}
@@ -2552,8 +2562,8 @@ function showRecorded(){
  box.appendChild(node('p',answerText(values),'route'));
  var message=values===null?'':card.kind==='single'?card.notes[card.options.indexOf(values[0])]:card.note;
  if(message)box.appendChild(node('p',message,'bodytext reply-slip'));
- var nav=row(box);
- if(step>0)button(nav,'上一页',function(){step--;showCard()});
+ var nav=row(box);nav.className+=' page-turn';
+ if(step>0)button(nav,'上一页',function(){step--;showCard()}).className='quiet-action';
  button(nav,step===current.cards.length-1?'展开最后的信纸':'翻到下一页',function(){step++;if(step<current.cards.length)showCard();else read()},true);
 }
 function showCard(){
@@ -2572,7 +2582,8 @@ function showCard(){
  }
  if(card.kind==='single'){
   if(step===0)box.appendChild(node('p','选好就落笔，翻回来还能看见。','note'));
-  actions=row(box);card.options.forEach(function(label){button(actions,label,function(){submit([label])})});
+  actions=row(box);actions.className+=' answer-list';
+  card.options.forEach(function(label){button(actions,label,function(){submit([label])})});
  }else if(card.kind==='multi'){
   box.appendChild(node('p','可以多选，也可以把这一页留白。','sub'));
   card.options.forEach(function(label){
@@ -2585,7 +2596,9 @@ function showCard(){
   var replyText=field(box,'my-reply','我的回信（选填）',node('textarea'),'');replyText.rows=3;
   button(row(box),'把这句话折进信里',function(){var value=replyText.value.trim();submit(value?[value]:[])},true);
  }
- var nav=row(box);if(step>0)button(nav,'上一页',function(){step--;showCard()});button(nav,'这页先留白',function(){submit(null)});
+ var nav=row(box);nav.className+=' card-margin';
+ if(step>0)button(nav,'上一页',function(){step--;showCard()});
+ button(nav,'这页先留白',function(){submit(null)});
 }
 function read(){
  var box=page('见字如面。');box.appendChild(node('div',undefined,'rule'));
@@ -2657,7 +2670,10 @@ function archive(record,encrypted){
  ['from','to'].forEach(function(key){copy.querySelector('#'+key+'-tip').textContent='';copy.querySelector('#'+key+'-person').parentNode.classList.remove('pinned')});
  var fallback=copy.querySelector('#fallback');fallback.hidden=false;fallback.textContent='';
  if(encrypted){
-  fallback.textContent='此信封需要带钥匙的完整网址和支持 Web Crypto 的浏览器。也可以按取信卡编号，在自己的备份中打开 HTML 或 TXT。';
+  fallback.appendChild(node('p','正在展开信封…','sub'));
+  var help=node('details');help.appendChild(node('summary','信封一直没展开？'));
+  help.appendChild(node('p','请用浏览器扫描取信卡，或打开日历里带钥匙的完整网址。如果仍然打不开，可按取信卡编号，在自己的备份中打开 HTML 或 TXT。'));
+  fallback.appendChild(help);
  }else{
   var d=node('details');d.appendChild(node('summary','如果互动页面没有出现，可在拆封日后展开文字版'));d.appendChild(node('pre',plainLetter(record),'plain'));fallback.appendChild(d);
  }
@@ -2689,7 +2705,7 @@ function compose(){
  future.setFullYear(future.getFullYear()+5);
  var date=field(form,'date','最早拆封日',node('input'),'');date.type='date';date.value=dateString(future);date.min=dateString(new Date());date.required=true;
  var range=node('select');[['7','当天起七天内，随机一天'],['1','就在拆封当天']].forEach(function(p){var opt=node('option',p[1]);opt.value=p[0];range.appendChild(opt)});field(form,'window','来信时间（当地 19:30）',range,'7');
- var body=field(form,'body','最后展开的那封信',node('textarea'),'');body.rows=5;body.placeholder='等你读到这里的时候……';body.required=true;
+ var body=field(form,'body','最后展开的那封信',node('textarea'),'');body.rows=5;body.placeholder='我写信的今天，身边有件小事，想让你也记得……';body.required=true;
  form.appendChild(node('h2','沿途的七张信纸'));form.appendChild(node('p','每张都可以展开改写。单选题的每个答案，都能收到你亲自写的一句回应。','sub'));
  var editors=prompts.map(function(card,index){return addEditor(form,card,index)});
  var egg=field(form,'egg','邮票背面的悄悄话',node('textarea'),sample.egg);egg.required=true;
@@ -2831,9 +2847,10 @@ function encodeBytes(bytes){
 }
 function decodeBytes(value){var raw=atob(value.replace(/-/g,'+').replace(/_/g,'/'));var out=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out}
 function decryptEnvelope(packet){
- function help(){page('这是一封上锁的信。','用取信卡扫码，或打开日历中包含 #k= 的完整链接。也可以在邮箱中搜索卡上的编号，直接读自己的离线备份。')}
+ function help(){page('这是一封上锁的信。','用取信卡扫码，或打开日历中包含 #k= 的完整链接。也可以按取信卡编号，打开自己的离线备份。')}
  var match=location.hash.match(/^#k=([A-Za-z0-9_-]{43})$/);
- if(!match||!window.crypto||!crypto.subtle||!window.TextDecoder){help();return}
+ if(!match){help();return}
+ if(!window.crypto||!crypto.subtle||!window.TextDecoder){page('换个浏览器，再来拆信。','请用系统浏览器打开取信卡上的完整 HTTPS 网址。也可以按取信卡编号，打开自己保存的离线 HTML 或 TXT。');return}
  page('正在展开信封…');
  crypto.subtle.importKey('raw',decodeBytes(match[1]),{name:'AES-GCM'},false,['decrypt']).then(function(key){
   return crypto.subtle.decrypt({name:'AES-GCM',iv:decodeBytes(packet.iv)},key,decodeBytes(packet.cipher));
